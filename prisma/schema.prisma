@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// ===================== USER =====================
+
+model users {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  v         Int      @map("__v") @default(0)
+  createdAt DateTime @db.Date @default(now())
+  email     String   @unique(map: "email_1")
+  isAdmin   Boolean
+  password  String
+  updatedAt DateTime @db.Date @default(now())
+  username  String   @unique(map: "username_1")
+  comments  comments[]
+  // favorite products
+  favoriteProduct products[] @relation("favoriteProduct", fields: [favoriteProductIds], references: [id])
+  favoriteProductIds String[] @db.ObjectId
+  // last visited products
+  lastVisitedProduct products[] @relation("lastVisitedProduct", fields: [lastVisitedProductIds], references: [id])
+  lastVisitedProductIds String[] @db.ObjectId
+
+}
+
+
+// ===================== PRODUCT =====================
+
+model products {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  v          Int      @map("__v")
+  categories String[]
+  color      String[]
+  createdAt  DateTime @db.Date  @default(now())
+  desc       String
+  img        String
+  price      Int
+  size       String[]
+  title      String   @unique(map: "title_1")
+  updatedAt  DateTime @db.Date  @default(now())
+  comments   comments[]
+  // favorite product - counterparty to user side
+  favorByUser users[] @relation("favoriteProduct", fields: [favorByUserIds], references: [id])
+  favorByUserIds String[] @db.ObjectId
+  // last visited products
+  lastVisitedByUser users[] @relation("lastVisitedProduct", fields: [lastVisitedByUserIds], references: [id])
+  lastVisitedByUserIds String[] @db.ObjectId
+}
+
+// ===================== COMMENT =====================
+
+model comments {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating      Int
+  content     String
+  updatedAt   DateTime @db.Date @default(now())
+  createdAt   DateTime @db.Date @default(now())
+  author      users @relation(fields: [authorId], references: [id])
+  authorId    String @db.ObjectId
+  product     products @relation(fields: [productId], references: [id])
+  productId   String @db.ObjectId
+}
+
+// model rating {
+//   id          String   @id @default(auto()) @map("_id") @db.ObjectId
+//   score       Int
+//   updatedAt   DateTime @db.Date @default(now())
+//   createdAt   DateTime @db.Date @default(now())
+//   author      users @relation(fields: [authorId], references: [id])
+//   authorId    String @db.ObjectId
+//   product     products @relation(fields: [productId], references: [id])
+//   productId   String @db.ObjectId
+// }
+
+
+// ===================== CART =====================
+
+model carts {
+  id        String          @id @default(auto()) @map("_id") @db.ObjectId
+  v         Int             @map("__v")
+  createdAt DateTime        @db.Date  @default(now())
+  products  CartsProducts[]
+  updatedAt DateTime        @db.Date  @default(now())
+  userId    String          @unique(map: "userId_1")
+}
+
+
+type CartsProducts {
+  id        String @map("_id") @db.ObjectId
+  color     String
+  key       String
+  productId String
+  quantity  Int
+  size      String
+}
+
+// ===================== ORDER =====================
+
+
+model orders {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  v         Int              @map("__v")
+  address   OrdersAddress
+  amount    Int
+  createdAt DateTime         @db.Date  @default(now())
+  products  OrdersProducts[]
+  status    String
+  updatedAt DateTime         @db.Date  @default(now())
+  userId    String
+}
+
+
+type OrdersProducts {
+  id        String @map("_id") @db.ObjectId
+  productId String
+  quantity  Int
+}
+
+type OrdersAddress {
+  city        String
+  country     String
+  line1       String
+  /// Could not determine type: the field only had null or empty values in the sample set.
+  line2       Json?
+  postal_code String
+  state       String?
+}
+

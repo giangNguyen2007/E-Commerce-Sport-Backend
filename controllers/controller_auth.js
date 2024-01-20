@@ -5,8 +5,10 @@ const User = require("../models/User");
 const dotenv = require("dotenv");
 dotenv.config();
 
+const prisma = require('../prisma/prisma');
 
-const registerController = async (req, res) => {
+
+const registerUser = async (req, res) => {
     
     const {username, email, password } = req.body
 
@@ -14,19 +16,30 @@ const registerController = async (req, res) => {
     const encrypted_pw = CryptoJS.AES.encrypt(password, "gng").toString();
 
     try {
-        const savedUser = await User.create({ 
-            username,
-            email,
-            password: encrypted_pw, 
-        });
+        // const savedUser = await User.create({ 
+        //     username,
+        //     email,
+        //     password: encrypted_pw, 
+        // });
+
+        const savedUser = await prisma.users.create({ 
+            data : {
+                username,
+                email,
+                password: encrypted_pw, 
+                isAdmin: false,
+            }
+        })
+
+        console.log(savedUser);
 
         const accessToken = jwt.sign( 
-            { id: savedUser._id, isAdmin: savedUser.isAdmin},
+            { id: savedUser.id, isAdmin: savedUser.isAdmin},
             process.env.JWT_SECRET,
             { expiresIn: '3d'}
         )
 
-        const responseObject = {...savedUser._doc, accessToken}
+        responseObject = {...savedUser, accessToken}
 
         res.status(200).json(responseObject);
 
@@ -37,13 +50,18 @@ const registerController = async (req, res) => {
 }
 
 
-const loginController = async (req, res) => {
+const loginUser = async (req, res) => {
 
     const {username, password } = req.body
 
     try {
        // check user presence in database
-       const user = await User.findOne( {username});   
+    //    const user = await User.findOne( {username});   
+       const user = await prisma.users.findUnique( {
+        where: {
+            username
+        }
+       });   
 
         if (!user) { 
             throw Error('User not found');
@@ -57,7 +75,7 @@ const loginController = async (req, res) => {
 
         // generate access token
         const accessToken = jwt.sign( 
-            { id: user._id, isAdmin: user.isAdmin},
+            { id: user.id, isAdmin: user.isAdmin},
             process.env.JWT_SECRET,
             { expiresIn: '3d'}
         )
@@ -65,13 +83,13 @@ const loginController = async (req, res) => {
         //exclude password from content 
         // const {password, ...others} = user._doc;
 
-        res.status(200).json({...user._doc, accessToken})
+        res.status(200).json({...user, accessToken})
     } catch (err) {
         res.status(400).json({error : err.message})
     } 
  }
 
 module.exports = {
-    registerController, 
-    loginController
+    registerUser, 
+    loginUser
 }
