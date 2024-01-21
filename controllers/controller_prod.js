@@ -65,6 +65,13 @@ const searchProductByTitle = async (req, res) => {
                 title : {
                     contains : searchValue,
                 }
+            },
+            include: {
+                comments : {
+                    select: {
+                        rating: true
+                    }
+                }
             }
         })
 
